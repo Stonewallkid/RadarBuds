@@ -1,0 +1,294 @@
+// RadarBuds Database Schema
+// Cannabis strain rating application
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ratings   Rating[]
+}
+
+model Strain {
+  id          String   @id @default(cuid())
+  name        String   @unique          // Strain name (e.g., "Blue Dream")
+  genetics    String                    // Parent strains or genetics info
+  strainType  String                    // indica, sativa, hybrid variants
+  thcPercent  Float?                    // THC percentage if known
+  cbdPercent  Float?                    // CBD percentage if known
+  grower      String?                   // Cultivator/brand
+  origin      String?                   // State/region of origin
+  imageUrl    String?                   // URL to strain/bud image
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  ratings     Rating[]
+
+  // Group session relations
+  sessionStrains  SessionStrain[]
+  currentSessions Session[]
+
+  @@index([name])
+  @@index([genetics])
+  @@index([strainType])
+}
+
+model Rating {
+  id            String   @id @default(cuid())
+
+  // Effect ratings stored as JSON (all 13 dimensions)
+  effectRatings Json
+
+  // Strain type at time of rating
+  strainType    String
+
+  // Bud appearance (optional)
+  budAppearance String?
+
+  // Overall star rating (1-10)
+  overallRating Int
+
+  // Tasting notes
+  notes         String?
+
+  // Selected effect tags (e.g., ["Uplifting", "Creative", "Relaxing"])
+  effectTags    Json?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  user          User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        String?  // Optional for anonymous ratings
+
+  strain        Strain   @relation(fields: [strainId], references: [id], onDelete: Cascade)
+  strainId      String
+
+  @@index([userId])
+  @@index([strainId])
+}
+
+// Analytics events for tracking user behavior
+model Event {
+  id        String   @id @default(cuid())
+
+  // Event type: search, view_strain, rate, compare, etc.
+  type      String
+
+  // User identifier (could be anonymous session ID or user ID)
+  sessionId String
+  userId    String?
+
+  // Event-specific data as JSON
+  data      Json
+
+  // Page/component where event occurred
+  source    String?
+
+  // Device/browser info
+  userAgent String?
+
+  createdAt DateTime @default(now())
+
+  @@index([type])
+  @@index([sessionId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// User taste profile (aggregated from their ratings)
+model TasteProfile {
+  id        String   @id @default(cuid())
+
+  userId    String   @unique
+
+  // Aggregated average effect profile across all ratings
+  avgProfile    Json
+
+  // Number of ratings used to calculate profile
+  ratingCount   Int
+
+  // Top effect tags selected across all ratings
+  topEffectTags Json?
+
+  // Preferred genetics (based on high ratings)
+  preferredGenetics Json?
+
+  // Preferred strain types
+  preferredTypes Json?
+
+  // Average overall rating given
+  avgOverallRating Float?
+
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// =============================================
+// Group Session Models
+// =============================================
+
+// A group session where multiple participants rate strains together
+model Session {
+  id          String   @id @default(cuid())
+  passcode    String   @unique    // 4-digit passcode for joining
+  name        String?              // Optional session name (e.g., "Friday Sesh")
+
+  // Session state: waiting | rating | reviewing | ended
+  status      String   @default("waiting")
+
+  // Host info
+  hostId      String
+  hostName    String
+
+  // Current strain being rated (null when in waiting/reviewing)
+  currentStrainId String?
+  currentStrain   Strain?  @relation(fields: [currentStrainId], references: [id])
+
+  // Screen sync mode - host controls what question participants see
+  screenSyncEnabled Boolean  @default(false)
+
+  // Current rating phase for sync mode: "type" | "appearance" | "effect-0" to "effect-12" | "overall"
+  currentPhase      String?
+
+  // Authenticated user who created this session (for profile linking)
+  userId            String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  endedAt     DateTime?
+
+  // Relations
+  participants   SessionParticipant[]
+  messages       SessionMessage[]
+  sessionStrains SessionStrain[]
+  sessionRatings SessionRating[]
+  userEvents     UserSessionEvent[]
+
+  @@index([passcode])
+  @@index([status])
+  @@index([hostId])
+  @@index([userId])
+}
+
+// Participant in a session
+model SessionParticipant {
+  id            String   @id @default(cuid())
+  sessionId     String
+  session       Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  // Participant identity (can be anonymous)
+  participantId String   // Could be user ID or anonymous session ID
+  displayName   String
+  isHost        Boolean  @default(false)
+
+  // Connection status
+  isOnline      Boolean  @default(true)
+  lastSeen      DateTime @default(now())
+
+  joinedAt      DateTime @default(now())
+
+  @@unique([sessionId, participantId])
+  @@index([sessionId])
+  @@index([participantId])
+}
+
+// Chat messages in a session
+model SessionMessage {
+  id          String   @id @default(cuid())
+  sessionId   String
+  session     Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  senderId    String
+  senderName  String
+  message     String
+
+  // Message type: chat | system (for join/leave notifications)
+  type        String   @default("chat")
+
+  createdAt   DateTime @default(now())
+
+  @@index([sessionId])
+  @@index([createdAt])
+}
+
+// Strains rated in a session (tracks order and reveal status)
+model SessionStrain {
+  id          String   @id @default(cuid())
+  sessionId   String
+  session     Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  strainId    String
+  strain      Strain   @relation(fields: [strainId], references: [id])
+
+  // Order in which strains were presented
+  orderIndex  Int
+
+  // When results were revealed (null = still hidden/blind)
+  revealedAt  DateTime?
+
+  createdAt   DateTime @default(now())
+
+  @@unique([sessionId, strainId])
+  @@index([sessionId])
+}
+
+// Individual ratings within a session (separate from main Rating for blind tracking)
+model SessionRating {
+  id              String   @id @default(cuid())
+  sessionId       String
+  session         Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  sessionStrainId String   // Links to SessionStrain
+  participantId   String   // Who submitted
+  participantName String
+
+  // Rating data (matches main Rating structure)
+  effectRatings   Json
+  strainType      String
+  budAppearance   String?
+  overallRating   Int
+  notes           String?
+  effectTags      Json?
+
+  submittedAt     DateTime @default(now())
+
+  @@unique([sessionId, sessionStrainId, participantId])
+  @@index([sessionId])
+  @@index([participantId])
+}
+
+// User's participation in a session (for profile history)
+model UserSessionEvent {
+  id          String   @id @default(cuid())
+
+  // Authenticated user who participated
+  userId      String
+
+  // Session reference
+  sessionId   String
+  session     Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  // Role in the session
+  wasHost     Boolean  @default(false)
+
+  // Display name used during the session
+  displayName String
+
+  // When user joined
+  joinedAt    DateTime @default(now())
+
+  @@unique([userId, sessionId])
+  @@index([userId])
+  @@index([sessionId])
+}

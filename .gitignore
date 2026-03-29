@@ -43,3 +43,10 @@ htmlcov/
 
 # OS files
 Thumbs.db
+
+# Next.js
+.next/
+
+# Database
+*.db
+prisma/dev.db
