@@ -1,13 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { searchStrains, getPopularStrains } from '@/lib/cannabis-api';
+import { prisma } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
 
   const query = searchParams.get('q') || '';
   const limit = parseInt(searchParams.get('limit') || '10', 10);
+  const recent = searchParams.get('recent') === 'true';
 
   try {
+    // If requesting recent strains from our database
+    if (recent) {
+      const recentStrains = await prisma.strain.findMany({
+        take: limit,
+        orderBy: { updatedAt: 'desc' },
+        select: {
+          id: true,
+          name: true,
+          genetics: true,
+          strainType: true,
+        },
+      });
+      return NextResponse.json(recentStrains);
+    }
+
     let results;
 
     if (!query.trim()) {
