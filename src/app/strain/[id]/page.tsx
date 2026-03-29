@@ -38,6 +38,22 @@ interface Strain {
   ratings: Rating[];
 }
 
+// Single color for ghost overlay - light green
+const GHOST_COLOR = '#22c55e';
+
+// Stroke colors based on strain type
+const STROKE_COLORS: Record<string, string> = {
+  'Indica': '#a855f7',           // Purple
+  'Indica-Dominant': '#a855f7',  // Purple
+  'Balanced Hybrid': '#22c55e',  // Green
+  'Sativa-Dominant': '#f97316',  // Orange (like orange hairs)
+  'Sativa': '#f97316',           // Orange
+};
+
+const getStrokeColor = (strainType: string): string => {
+  return STROKE_COLORS[strainType] || GHOST_COLOR;
+};
+
 export default function StrainDetailPage() {
   const params = useParams();
   const strainId = params.id as string;
@@ -46,6 +62,22 @@ export default function StrainDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [avgProfile, setAvgProfile] = useState<EffectRatings>(createEmptyRatings());
+
+  // Toggle states
+  const [visibleReviews, setVisibleReviews] = useState<Set<string>>(new Set());
+  const [showAverage, setShowAverage] = useState(true);
+  const [chartSize, setChartSize] = useState(320);
+
+  // Responsive chart sizing
+  useEffect(() => {
+    const updateSize = () => {
+      const width = window.innerWidth;
+      setChartSize(Math.min(width - 60, 360));
+    };
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    return () => window.removeEventListener('resize', updateSize);
+  }, []);
 
   useEffect(() => {
     if (!strainId) return;
@@ -64,6 +96,9 @@ export default function StrainDetailPage() {
 
         const data = await response.json();
         setStrain(data);
+
+        // Initialize all reviews as visible
+        setVisibleReviews(new Set(data.ratings.map((r: Rating) => r.id)));
 
         // Calculate average profile from all ratings
         if (data.ratings && data.ratings.length > 0) {
@@ -119,6 +154,27 @@ export default function StrainDetailPage() {
 
   const getStrainTypeColor = (type: StrainType) => {
     return STRAIN_TYPE_COLORS[type] || STRAIN_TYPE_COLORS['Balanced Hybrid'];
+  };
+
+  const toggleReview = (id: string) => {
+    setVisibleReviews(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const toggleAllReviews = () => {
+    if (!strain) return;
+    if (visibleReviews.size === strain.ratings.length) {
+      setVisibleReviews(new Set());
+    } else {
+      setVisibleReviews(new Set(strain.ratings.map(r => r.id)));
+    }
   };
 
   if (loading) {
@@ -186,7 +242,7 @@ export default function StrainDetailPage() {
       <div className="max-w-4xl mx-auto px-4 py-6">
         {/* Strain Info Card */}
         <div className="bg-[#1a1a1a] rounded-2xl p-6 border border-[#333] mb-6">
-          <div className="flex flex-col md:flex-row gap-6">
+          <div className="flex flex-col lg:flex-row gap-6">
             {/* Strain Details */}
             <div className="flex-1">
               <div className="flex items-start gap-3 mb-4">
@@ -235,18 +291,117 @@ export default function StrainDetailPage() {
               </div>
             </div>
 
-            {/* Average Effect Profile */}
-            <div className="flex flex-col items-center">
-              <p className="text-sm text-gray-500 mb-2">Average Effect Profile</p>
-              <RadarChart
-                ratings={avgProfile}
-                size={220}
-                interactive={false}
-                fillColor={getStrainTypeColor(strain.strainType)}
-                fillOpacity={0.3}
-                darkMode={true}
-              />
-            </div>
+            {/* Ghost Overlay Chart */}
+            {strain.ratings.length > 0 && (
+              <div className="flex flex-col items-center">
+                <div className="flex items-center justify-between w-full mb-2">
+                  <p className="text-sm text-gray-500">Effect Profiles</p>
+                  <button
+                    onClick={toggleAllReviews}
+                    className="text-xs text-green-400 hover:text-green-300"
+                  >
+                    {visibleReviews.size === strain.ratings.length ? 'Hide All' : 'Show All'}
+                  </button>
+                </div>
+
+                {/* Stacked overlay charts */}
+                <div className="relative" style={{ width: chartSize, height: chartSize }}>
+                  {/* Base grid (empty chart) */}
+                  <div className="absolute inset-0">
+                    <RadarChart
+                      ratings={createEmptyRatings()}
+                      size={chartSize}
+                      interactive={false}
+                      fillColor="transparent"
+                      fillOpacity={0}
+                      darkMode={true}
+                    />
+                  </div>
+
+                  {/* Average profile (toggleable) */}
+                  {showAverage && (
+                    <div
+                      className="absolute inset-0 transition-opacity duration-200"
+                      style={{ opacity: 0.9, pointerEvents: 'none' }}
+                    >
+                      <RadarChart
+                        ratings={avgProfile}
+                        size={chartSize}
+                        interactive={false}
+                        fillColor="#fbbf24"
+                        fillOpacity={0.15}
+                        darkMode={true}
+                      />
+                    </div>
+                  )}
+
+                  {/* Individual review overlays - same color, low opacity for natural consensus */}
+                  {strain.ratings.map((rating) => {
+                    const isVisible = visibleReviews.has(rating.id);
+
+                    return (
+                      <div
+                        key={rating.id}
+                        className="absolute inset-0 transition-opacity duration-200"
+                        style={{ opacity: isVisible ? 1 : 0, pointerEvents: 'none' }}
+                      >
+                        <RadarChart
+                          ratings={rating.effectRatings}
+                          size={chartSize}
+                          interactive={false}
+                          fillColor={GHOST_COLOR}
+                          fillOpacity={0.08}
+                          strokeColor={getStrokeColor(strain.strainType)}
+                          strokeOpacity={0.2}
+                          showDots={false}
+                          darkMode={true}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Legend - simplified */}
+                <div className="flex flex-wrap justify-center gap-3 mt-3">
+                  {/* Average toggle */}
+                  <button
+                    onClick={() => setShowAverage(!showAverage)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all ${
+                      showAverage ? 'bg-amber-900/30 ring-1 ring-amber-500/50' : 'bg-[#252525] opacity-50'
+                    }`}
+                  >
+                    <div
+                      className={`w-3 h-3 rounded-full bg-amber-400 transition-opacity ${showAverage ? '' : 'opacity-30'}`}
+                    />
+                    <span className={`text-xs ${showAverage ? 'text-amber-300' : 'text-gray-500'}`}>
+                      Average
+                    </span>
+                  </button>
+
+                  {/* All reviews toggle */}
+                  <button
+                    onClick={toggleAllReviews}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all ${
+                      visibleReviews.size > 0 ? 'bg-green-900/30 ring-1 ring-green-500/50' : 'bg-[#252525] opacity-50'
+                    }`}
+                  >
+                    <div
+                      className={`w-3 h-3 rounded-full transition-opacity ${visibleReviews.size > 0 ? '' : 'opacity-30'}`}
+                      style={{ backgroundColor: GHOST_COLOR }}
+                    />
+                    <span className={`text-xs ${visibleReviews.size > 0 ? 'text-green-300' : 'text-gray-500'}`}>
+                      {strain.ratings.length} Reviews
+                    </span>
+                  </button>
+                </div>
+
+                {strain.ratings.length > 1 && (
+                  <p className="text-xs text-gray-600 mt-2">
+                    Darker areas = more consensus
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -269,62 +424,64 @@ export default function StrainDetailPage() {
           ) : (
             <div className="space-y-4">
               {strain.ratings.map((rating) => (
-                <div
-                  key={rating.id}
-                  className="bg-[#252525] rounded-xl p-4 border border-[#333]"
-                >
-                  <div className="flex flex-col md:flex-row gap-4">
-                    {/* Rating Info */}
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className="w-8 h-8 rounded-full bg-green-600/20 flex items-center justify-center">
-                          <span className="text-green-500 font-medium text-sm">
+                  <div
+                    key={rating.id}
+                    className="bg-[#252525] rounded-xl p-4 border border-[#333]"
+                  >
+                    <div className="flex flex-col md:flex-row gap-4">
+                      {/* Rating Info */}
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div
+                            className="w-10 h-10 rounded-full flex items-center justify-center font-medium text-white bg-green-600"
+                          >
                             {rating.user?.name?.[0]?.toUpperCase() || 'A'}
-                          </span>
+                          </div>
+                          <div>
+                            <p className="text-white font-medium">
+                              {rating.user?.name || 'Anonymous'}
+                            </p>
+                            <p className="text-gray-500 text-xs">
+                              {formatDate(rating.createdAt)}
+                            </p>
+                          </div>
+                          <div className="ml-auto flex items-center gap-1">
+                            <span className="text-2xl font-bold text-green-400">
+                              {rating.overallRating}
+                            </span>
+                            <span className="text-gray-500">/10</span>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-white font-medium">
-                            {rating.user?.name || 'Anonymous'}
+
+                        {rating.budAppearance && (
+                          <p className="text-sm text-gray-400 mb-2">
+                            <span className="text-gray-500">Appearance:</span> {rating.budAppearance}
                           </p>
-                          <p className="text-gray-500 text-xs">
-                            {formatDate(rating.createdAt)}
+                        )}
+
+                        {rating.notes && (
+                          <p className="text-gray-300 text-sm mt-3 p-3 bg-[#1a1a1a] rounded-lg">
+                            "{rating.notes}"
                           </p>
-                        </div>
-                        <div className="ml-auto flex items-center gap-1">
-                          <span className="text-2xl font-bold text-green-400">
-                            {rating.overallRating}
-                          </span>
-                          <span className="text-gray-500">/10</span>
-                        </div>
+                        )}
                       </div>
 
-                      {rating.budAppearance && (
-                        <p className="text-sm text-gray-400 mb-2">
-                          <span className="text-gray-500">Appearance:</span> {rating.budAppearance}
-                        </p>
-                      )}
-
-                      {rating.notes && (
-                        <p className="text-gray-300 text-sm mt-3 p-3 bg-[#1a1a1a] rounded-lg">
-                          "{rating.notes}"
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Rating Radar Chart */}
-                    <div className="flex justify-center md:justify-end">
-                      <RadarChart
-                        ratings={rating.effectRatings}
-                        size={140}
-                        interactive={false}
-                        fillColor={getStrainTypeColor(rating.strainType as StrainType)}
-                        fillOpacity={0.3}
-                        darkMode={true}
-                      />
+                      {/* Rating Radar Chart - Larger */}
+                      <div className="flex justify-center md:justify-end flex-shrink-0">
+                        <RadarChart
+                          ratings={rating.effectRatings}
+                          size={220}
+                          interactive={false}
+                          fillColor={GHOST_COLOR}
+                          fillOpacity={0.25}
+                          strokeColor={getStrokeColor(strain.strainType)}
+                          strokeOpacity={0.6}
+                          darkMode={true}
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
             </div>
           )}
         </div>

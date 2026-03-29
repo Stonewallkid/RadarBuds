@@ -13,6 +13,9 @@ interface RadarChartProps {
   fillOpacity?: number;
   darkMode?: boolean;
   strokeDashed?: boolean;
+  showDots?: boolean;
+  strokeOpacity?: number;
+  strokeColor?: string;
 }
 
 export default function RadarChart({
@@ -24,6 +27,9 @@ export default function RadarChart({
   fillOpacity = 0.3,
   darkMode = false,
   strokeDashed = false,
+  showDots = true,
+  strokeOpacity = 1,
+  strokeColor,
 }: RadarChartProps) {
   // Dark mode colors
   const gridColor = darkMode ? '#3a3a3a' : '#e5e5e5';
@@ -169,27 +175,30 @@ export default function RadarChart({
       .attr('d', generatePath())
       .attr('fill', fillColor)
       .attr('fill-opacity', fillOpacity)
-      .attr('stroke', fillColor)
-      .attr('stroke-width', 2);
+      .attr('stroke', strokeColor || fillColor)
+      .attr('stroke-width', 2)
+      .attr('stroke-opacity', strokeOpacity);
 
     if (strokeDashed) {
       path.attr('stroke-dasharray', '6,3');
     }
 
-    // Draw points at each rating
-    EFFECT_DIMENSIONS.forEach((dim, i) => {
-      const coords = getCoordinates(i, ratings[dim]);
-      svg.append('circle')
-        .attr('cx', coords.x)
-        .attr('cy', coords.y)
-        .attr('r', activeAxis === dim ? activeDotRadius : dotRadius)
-        .attr('fill', fillColor)
-        .attr('stroke', 'white')
-        .attr('stroke-width', Math.max(1, 2 * scale))
-        .style('cursor', interactive ? 'pointer' : 'default');
-    });
+    // Draw points at each rating (optional)
+    if (showDots) {
+      EFFECT_DIMENSIONS.forEach((dim, i) => {
+        const coords = getCoordinates(i, ratings[dim]);
+        svg.append('circle')
+          .attr('cx', coords.x)
+          .attr('cy', coords.y)
+          .attr('r', activeAxis === dim ? activeDotRadius : dotRadius)
+          .attr('fill', fillColor)
+          .attr('stroke', 'white')
+          .attr('stroke-width', Math.max(1, 2 * scale))
+          .style('cursor', interactive ? 'pointer' : 'default');
+      });
+    }
 
-  }, [ratings, activeAxis, centerX, centerY, radius, angleSlice, levels, fillColor, fillOpacity, generatePath, getCoordinates, interactive, gridColor, axisColor, labelColor, activeColor, strokeDashed, fontSize, dotRadius, activeDotRadius, labelOffset, scale]);
+  }, [ratings, activeAxis, centerX, centerY, radius, angleSlice, levels, fillColor, fillOpacity, generatePath, getCoordinates, interactive, gridColor, axisColor, labelColor, activeColor, strokeDashed, fontSize, dotRadius, activeDotRadius, labelOffset, scale, showDots, strokeOpacity, strokeColor]);
 
   // Mouse event handlers
   const handleMouseDown = (e: React.MouseEvent) => {
