@@ -42,6 +42,8 @@ interface CompletedRating {
   ratings: EffectRatings;
   overallRating: number;
   displayName?: string;
+  notes?: string;
+  tasteTags?: string[];
   savedToDb?: boolean;
   ratingId?: string;
   strainId?: string;
@@ -146,6 +148,8 @@ function HomeContent({ startWithRating, prefilledStrain, prefilledGenetics }: Ho
         effectRatings: data.ratings,
         overallRating: data.overallRating,
         displayName: data.displayName,
+        notes: data.notes,
+        tasteTags: data.tasteTags,
       });
 
       setCompletedRating({

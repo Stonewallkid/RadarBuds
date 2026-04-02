@@ -65,6 +65,7 @@ export interface CreateRatingData {
   effectRatings: EffectRatings;
   overallRating: number;
   notes?: string;
+  tasteTags?: string[];
   displayName?: string;
 }
 
@@ -98,6 +99,7 @@ export async function createRating(data: CreateRatingData) {
       budAppearance: data.budAppearance,
       overallRating: data.overallRating,
       notes: data.notes,
+      effectTags: data.tasteTags,
       imageUrl: data.strain.imageUrl,
     }),
   });

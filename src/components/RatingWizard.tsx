@@ -26,13 +26,39 @@ interface RatingWizardProps {
     ratings: EffectRatings;
     overallRating: number;
     displayName?: string;
+    notes?: string;
+    tasteTags?: string[];
   }) => void;
   onCancel: () => void;
   prefilledStrain?: string;
   prefilledGenetics?: string;
 }
 
-type WizardStep = 'name' | 'strain-info' | 'type' | 'appearance' | 'effects' | 'overall';
+type WizardStep = 'name' | 'strain-info' | 'type' | 'appearance' | 'effects' | 'overall' | 'notes';
+
+// Cannabis-specific taste/aroma tags
+const TASTE_TAGS = {
+  'Terpenes': [
+    'Myrcene', 'Limonene', 'Caryophyllene', 'Pinene', 'Linalool',
+    'Humulene', 'Terpinolene', 'Ocimene', 'Bisabolol',
+  ],
+  'Aromas': [
+    'Earthy', 'Pine', 'Citrus', 'Fruity', 'Skunky', 'Diesel',
+    'Floral', 'Spicy', 'Sweet', 'Woody', 'Herbal', 'Minty',
+    'Cheese', 'Coffee', 'Chocolate', 'Vanilla',
+  ],
+  'Flavors': [
+    'Sweet', 'Citrus', 'Berry', 'Tropical', 'Grape', 'Mango',
+    'Lemon', 'Orange', 'Apple', 'Cherry', 'Blueberry',
+    'Earthy', 'Pine', 'Diesel', 'Spicy', 'Herbal', 'Creamy',
+    'Nutty', 'Honey', 'Mint', 'Pepper',
+  ],
+  'Feelings': [
+    'Uplifting', 'Relaxing', 'Creative', 'Focused', 'Euphoric',
+    'Sleepy', 'Hungry', 'Giggly', 'Talkative', 'Energetic',
+    'Calm', 'Happy', 'Meditative', 'Couch-lock',
+  ],
+};
 
 export default function RatingWizard({ onComplete, onCancel, prefilledStrain, prefilledGenetics }: RatingWizardProps) {
   // Check if user already has a name saved
@@ -54,6 +80,11 @@ export default function RatingWizard({ onComplete, onCancel, prefilledStrain, pr
 
   // Display name for guest ratings
   const [displayName, setDisplayName] = useState('');
+
+  // Tasting notes
+  const [customNotes, setCustomNotes] = useState('');
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [expandedCategory, setExpandedCategory] = useState<string | null>('Aromas');
 
   // Transition state for flash effect
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -105,12 +136,13 @@ export default function RatingWizard({ onComplete, onCancel, prefilledStrain, pr
   }, []);
 
   // Calculate progress
-  const totalSteps = (needsName ? 1 : 0) + 3 + EFFECT_DIMENSIONS.length + 1; // name? + strain-info + type + appearance + effects + overall
+  const totalSteps = (needsName ? 1 : 0) + 3 + EFFECT_DIMENSIONS.length + 2; // name? + strain-info + type + appearance + effects + overall + notes
   const currentStepNumber = step === 'name' ? 1
     : step === 'strain-info' ? (needsName ? 2 : 1)
     : step === 'type' ? (needsName ? 3 : 2)
     : step === 'appearance' ? (needsName ? 4 : 3)
     : step === 'effects' ? (needsName ? 5 : 4) + effectIndex
+    : step === 'overall' ? (needsName ? 5 : 4) + EFFECT_DIMENSIONS.length
     : totalSteps;
   const progressPercent = (currentStepNumber / totalSteps) * 100;
 
@@ -139,6 +171,8 @@ export default function RatingWizard({ onComplete, onCancel, prefilledStrain, pr
         setTimeout(() => setIsTransitioning(false), 50);
       }, 150);
     } else if (step === 'overall') {
+      setStep('notes');
+    } else if (step === 'notes') {
       onComplete({
         strain: {
           name: strainName,
@@ -153,8 +187,18 @@ export default function RatingWizard({ onComplete, onCancel, prefilledStrain, pr
         ratings,
         overallRating,
         displayName: displayName.trim() || undefined,
+        notes: customNotes.trim() || undefined,
+        tasteTags: selectedTags.length > 0 ? selectedTags : undefined,
       });
     }
+  };
+
+  const toggleTag = (tag: string) => {
+    setSelectedTags(prev =>
+      prev.includes(tag)
+        ? prev.filter(t => t !== tag)
+        : [...prev, tag]
+    );
   };
 
   const handleBack = () => {
@@ -177,6 +221,8 @@ export default function RatingWizard({ onComplete, onCancel, prefilledStrain, pr
     } else if (step === 'overall') {
       setEffectIndex(EFFECT_DIMENSIONS.length - 1);
       setStep('effects');
+    } else if (step === 'notes') {
+      setStep('overall');
     }
   };
 
@@ -610,9 +656,110 @@ export default function RatingWizard({ onComplete, onCancel, prefilledStrain, pr
                 onClick={handleNext}
                 className="w-full py-4 rounded-lg font-bold text-lg bg-green-600 text-white hover:bg-green-500 transition-colors"
               >
-                Complete Rating
+                Next: Add Tasting Notes
               </button>
             )}
+          </div>
+        )}
+
+        {/* Tasting Notes Step */}
+        {step === 'notes' && (
+          <div className="max-w-lg mx-auto space-y-6">
+            <div className="text-center">
+              <h2 className="text-2xl font-bold text-white mb-2">Tasting Notes</h2>
+              <p className="text-gray-400">
+                What did you taste and feel? <span className="text-gray-600">(optional)</span>
+              </p>
+            </div>
+
+            {/* Category tabs */}
+            <div className="flex flex-wrap justify-center gap-2">
+              {Object.keys(TASTE_TAGS).map((category) => (
+                <button
+                  key={category}
+                  onClick={() => setExpandedCategory(expandedCategory === category ? null : category)}
+                  className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
+                    expandedCategory === category
+                      ? 'bg-green-600 text-white'
+                      : 'bg-[#252525] text-gray-400 hover:bg-[#303030]'
+                  }`}
+                >
+                  {category}
+                </button>
+              ))}
+            </div>
+
+            {/* Tags for selected category */}
+            {expandedCategory && (
+              <div className="flex flex-wrap gap-2 p-4 bg-[#1a1a1a] rounded-lg border border-[#333]">
+                {TASTE_TAGS[expandedCategory as keyof typeof TASTE_TAGS].map((tag) => (
+                  <button
+                    key={tag}
+                    onClick={() => toggleTag(tag)}
+                    className={`px-3 py-1.5 text-sm rounded-full transition-all ${
+                      selectedTags.includes(tag)
+                        ? 'bg-green-600 text-white'
+                        : 'bg-[#333] text-gray-300 hover:bg-[#3a3a3a]'
+                    }`}
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Selected tags display */}
+            {selectedTags.length > 0 && (
+              <div>
+                <p className="text-xs text-gray-500 mb-2">Your selections:</p>
+                <div className="flex flex-wrap gap-2">
+                  {selectedTags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="inline-flex items-center gap-1 px-2 py-1 bg-green-900/30 text-green-300 text-sm rounded"
+                    >
+                      {tag}
+                      <button
+                        onClick={() => toggleTag(tag)}
+                        className="hover:text-white"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Custom notes textarea */}
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-2">
+                Add your own notes
+              </label>
+              <textarea
+                value={customNotes}
+                onChange={(e) => setCustomNotes(e.target.value)}
+                placeholder="Describe what makes this strain special to you..."
+                rows={4}
+                className="w-full px-4 py-3 bg-[#252525] border border-[#333] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-green-600 resize-none"
+              />
+            </div>
+
+            {/* Complete button */}
+            <button
+              onClick={handleNext}
+              className="w-full py-4 rounded-lg font-bold text-lg bg-green-600 text-white hover:bg-green-500 transition-colors"
+            >
+              Complete Rating
+            </button>
+
+            {/* Skip button */}
+            <button
+              onClick={handleNext}
+              className="w-full py-2 text-gray-500 text-sm hover:text-gray-300 transition-colors"
+            >
+              Skip notes
+            </button>
           </div>
         )}
       </div>

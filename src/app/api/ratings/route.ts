@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userId, strainId, strain, effectRatings, strainType, budAppearance, overallRating, notes, imageUrl } = body;
+    const { userId, strainId, strain, effectRatings, strainType, budAppearance, overallRating, notes, effectTags, imageUrl } = body;
 
     // Validate required fields
     if (!effectRatings || !strainType || !overallRating) {
@@ -121,7 +121,8 @@ export async function POST(request: NextRequest) {
         strainType,
         budAppearance: budAppearance || null,
         overallRating,
-        notes,
+        notes: notes || null,
+        effectTags: effectTags || null,
       },
       include: {
         user: {
