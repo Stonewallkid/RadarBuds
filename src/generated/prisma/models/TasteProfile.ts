@@ -1126,6 +1126,7 @@ export type TasteProfileCreateManyArgs<ExtArgs extends runtime.Types.Extensions.
    * The data used to create many TasteProfiles.
    */
   data: Prisma.TasteProfileCreateManyInput | Prisma.TasteProfileCreateManyInput[]
+  skipDuplicates?: boolean
 }
 
 /**
@@ -1144,6 +1145,7 @@ export type TasteProfileCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Ex
    * The data used to create many TasteProfiles.
    */
   data: Prisma.TasteProfileCreateManyInput | Prisma.TasteProfileCreateManyInput[]
+  skipDuplicates?: boolean
 }
 
 /**

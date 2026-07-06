@@ -50,3 +50,6 @@ Thumbs.db
 # Database
 *.db
 prisma/dev.db
+
+# Vercel
+.vercel

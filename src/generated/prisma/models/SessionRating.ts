@@ -587,6 +587,7 @@ export type SessionRatingCreateOrConnectWithoutSessionInput = {
 
 export type SessionRatingCreateManySessionInputEnvelope = {
   data: Prisma.SessionRatingCreateManySessionInput | Prisma.SessionRatingCreateManySessionInput[]
+  skipDuplicates?: boolean
 }
 
 export type SessionRatingUpsertWithWhereUniqueWithoutSessionInput = {
@@ -1443,6 +1444,7 @@ export type SessionRatingCreateManyArgs<ExtArgs extends runtime.Types.Extensions
    * The data used to create many SessionRatings.
    */
   data: Prisma.SessionRatingCreateManyInput | Prisma.SessionRatingCreateManyInput[]
+  skipDuplicates?: boolean
 }
 
 /**
@@ -1461,6 +1463,7 @@ export type SessionRatingCreateManyAndReturnArgs<ExtArgs extends runtime.Types.E
    * The data used to create many SessionRatings.
    */
   data: Prisma.SessionRatingCreateManyInput | Prisma.SessionRatingCreateManyInput[]
+  skipDuplicates?: boolean
   /**
    * Choose, which related nodes to fetch as well
    */

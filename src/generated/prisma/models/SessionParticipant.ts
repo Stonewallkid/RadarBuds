@@ -458,6 +458,7 @@ export type SessionParticipantCreateOrConnectWithoutSessionInput = {
 
 export type SessionParticipantCreateManySessionInputEnvelope = {
   data: Prisma.SessionParticipantCreateManySessionInput | Prisma.SessionParticipantCreateManySessionInput[]
+  skipDuplicates?: boolean
 }
 
 export type SessionParticipantUpsertWithWhereUniqueWithoutSessionInput = {
@@ -1270,6 +1271,7 @@ export type SessionParticipantCreateManyArgs<ExtArgs extends runtime.Types.Exten
    * The data used to create many SessionParticipants.
    */
   data: Prisma.SessionParticipantCreateManyInput | Prisma.SessionParticipantCreateManyInput[]
+  skipDuplicates?: boolean
 }
 
 /**
@@ -1288,6 +1290,7 @@ export type SessionParticipantCreateManyAndReturnArgs<ExtArgs extends runtime.Ty
    * The data used to create many SessionParticipants.
    */
   data: Prisma.SessionParticipantCreateManyInput | Prisma.SessionParticipantCreateManyInput[]
+  skipDuplicates?: boolean
   /**
    * Choose, which related nodes to fetch as well
    */

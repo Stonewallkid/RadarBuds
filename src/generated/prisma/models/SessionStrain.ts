@@ -498,6 +498,7 @@ export type SessionStrainCreateOrConnectWithoutStrainInput = {
 
 export type SessionStrainCreateManyStrainInputEnvelope = {
   data: Prisma.SessionStrainCreateManyStrainInput | Prisma.SessionStrainCreateManyStrainInput[]
+  skipDuplicates?: boolean
 }
 
 export type SessionStrainUpsertWithWhereUniqueWithoutStrainInput = {
@@ -551,6 +552,7 @@ export type SessionStrainCreateOrConnectWithoutSessionInput = {
 
 export type SessionStrainCreateManySessionInputEnvelope = {
   data: Prisma.SessionStrainCreateManySessionInput | Prisma.SessionStrainCreateManySessionInput[]
+  skipDuplicates?: boolean
 }
 
 export type SessionStrainUpsertWithWhereUniqueWithoutSessionInput = {
@@ -1369,6 +1371,7 @@ export type SessionStrainCreateManyArgs<ExtArgs extends runtime.Types.Extensions
    * The data used to create many SessionStrains.
    */
   data: Prisma.SessionStrainCreateManyInput | Prisma.SessionStrainCreateManyInput[]
+  skipDuplicates?: boolean
 }
 
 /**
@@ -1387,6 +1390,7 @@ export type SessionStrainCreateManyAndReturnArgs<ExtArgs extends runtime.Types.E
    * The data used to create many SessionStrains.
    */
   data: Prisma.SessionStrainCreateManyInput | Prisma.SessionStrainCreateManyInput[]
+  skipDuplicates?: boolean
   /**
    * Choose, which related nodes to fetch as well
    */

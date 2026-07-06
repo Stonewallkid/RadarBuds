@@ -1619,6 +1619,7 @@ export type StrainCreateManyArgs<ExtArgs extends runtime.Types.Extensions.Intern
    * The data used to create many Strains.
    */
   data: Prisma.StrainCreateManyInput | Prisma.StrainCreateManyInput[]
+  skipDuplicates?: boolean
 }
 
 /**
@@ -1637,6 +1638,7 @@ export type StrainCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensio
    * The data used to create many Strains.
    */
   data: Prisma.StrainCreateManyInput | Prisma.StrainCreateManyInput[]
+  skipDuplicates?: boolean
 }
 
 /**

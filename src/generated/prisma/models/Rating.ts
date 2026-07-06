@@ -608,6 +608,7 @@ export type RatingCreateOrConnectWithoutUserInput = {
 
 export type RatingCreateManyUserInputEnvelope = {
   data: Prisma.RatingCreateManyUserInput | Prisma.RatingCreateManyUserInput[]
+  skipDuplicates?: boolean
 }
 
 export type RatingUpsertWithWhereUniqueWithoutUserInput = {
@@ -676,6 +677,7 @@ export type RatingCreateOrConnectWithoutStrainInput = {
 
 export type RatingCreateManyStrainInputEnvelope = {
   data: Prisma.RatingCreateManyStrainInput | Prisma.RatingCreateManyStrainInput[]
+  skipDuplicates?: boolean
 }
 
 export type RatingUpsertWithWhereUniqueWithoutStrainInput = {
@@ -1564,6 +1566,7 @@ export type RatingCreateManyArgs<ExtArgs extends runtime.Types.Extensions.Intern
    * The data used to create many Ratings.
    */
   data: Prisma.RatingCreateManyInput | Prisma.RatingCreateManyInput[]
+  skipDuplicates?: boolean
 }
 
 /**
@@ -1582,6 +1585,7 @@ export type RatingCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensio
    * The data used to create many Ratings.
    */
   data: Prisma.RatingCreateManyInput | Prisma.RatingCreateManyInput[]
+  skipDuplicates?: boolean
   /**
    * Choose, which related nodes to fetch as well
    */
